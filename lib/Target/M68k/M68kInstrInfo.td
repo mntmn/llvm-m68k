@@ -17,8 +17,22 @@ include "M68kInstrFormats.td"
 //
 //===----------------------------------------------------------------------===//
 
+def SDT_M68kCallSeqStart : SDCallSeqStart<[ SDTCisVT<0, i32> ]>;
+def SDT_M68kCallSeqEnd   : SDCallSeqEnd<[ SDTCisVT<0, i32>, SDTCisVT<1, i32> ]>;
+def SDT_M68kcall    : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
+
 def M68kretflag : SDNode<"M68kISD::RET_FLAG", SDTNone,
                          [SDNPHasChain, SDNPOptInGlue]>;
+                         
+def M68kcallseq_start : SDNode<"ISD::CALLSEQ_START", SDT_M68kCallSeqStart,
+                              [SDNPHasChain, SDNPSideEffect, SDNPOutGlue]>;
+def M68kcallseq_end   : SDNode<"ISD::CALLSEQ_END",   SDT_M68kCallSeqEnd,
+                              [SDNPHasChain, SDNPSideEffect,
+                               SDNPOptInGlue, SDNPOutGlue]>;
+
+def M68kcall          : SDNode<"M68kISD::JSR", SDT_M68kcall,
+                              [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
+                               SDNPVariadic]>;
 
 // TODO learn about operands, what are they exactly, why do they differ from
 // patterns.  Theory: operand is for storing stuff in MCInst, pattern is for
@@ -566,7 +580,26 @@ def : Pat<(i8 (trunc DR16:$src)),
 // Flow control
 //===----------------------------------------------------------------------===//
 
+def btarget : Operand<i32> {
+  // Encoded the same as branch targets.
+  //let EncoderMethod = "getBranchTargetOpValue";
+  //let OperandType = "OPERAND_PCREL";
+}
+
 def RTS : M68kInst<(outs), (ins), "rts", [(M68kretflag)]> {
   let isReturn = 1;
   let isTerminator = 1;
+}
+
+let isCall=1 in {
+    def JSR : M68kInst<(outs), (ins btarget:$func), "jsr\t$func", [(M68kcall tglobaladdr:$func)]>;
+}
+
+let hasSideEffects = 1 in {
+def ADJCALLSTACKDOWN : M68kInst<(outs), (ins i32imm:$amt),
+                                  "!ADJCALLSTACKDOWN $amt",
+                                  [(M68kcallseq_start timm:$amt)]>;
+def ADJCALLSTACKUP   : M68kInst<(outs), (ins i32imm:$amt1, i32imm:$amt2),
+                                  "!ADJCALLSTACKUP $amt1",
+                                  [(M68kcallseq_end timm:$amt1, timm:$amt2)]>;
 }

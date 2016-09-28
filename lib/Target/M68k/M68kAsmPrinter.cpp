@@ -32,10 +32,10 @@ void M68kAsmPrinter::EmitFunctionEntryLabel() {
 }
 
 void M68kAsmPrinter::EmitInstruction(const MachineInstr *MI) {
-  M68kMCInstLower Lower;
+  M68kMCInstLower Lower(OutContext, *this);
 
   MCInst Inst;
-  Lower.lower(MI, Inst);
+  Lower.Lower(MI, Inst);
   OutStreamer.EmitInstruction(Inst);
 }
 

@@ -1,0 +1,13 @@
+define i32 @mul_add(i16 %x, i16 %y, i16 %z) {
+entry:
+%tmp = add i16 %x, %y
+%tmp2 = add i16 %tmp, %z
+%tmp3 = zext i16 %tmp2 to i32
+ret i32 %tmp3
+}
+
+define i32 @main() {
+%tmp1 = add i16 23, 0
+%tmp = call i32 @mul_add(i16 %tmp1, i16 2, i16 3)
+ret i32 %tmp
+}

@@ -13,6 +13,9 @@
 #define DEBUG_TYPE "asm-printer"
 #include "M68kInstPrinter.h"
 #include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCExpr.h"
+#include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace llvm;
@@ -35,6 +38,28 @@ void M68kInstPrinter::printRegName(raw_ostream &OS, unsigned RegNo) const {
   OS << getRegisterName(RegNo);
 }
 
+static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
+  int Offset = 0;
+  const MCSymbolRefExpr *SRE;
+
+  if (const MCBinaryExpr *BE = dyn_cast<MCBinaryExpr>(Expr)) {
+    SRE = dyn_cast<MCSymbolRefExpr>(BE->getLHS());
+    const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(BE->getRHS());
+    assert(SRE && CE && "Binary expression must be sym+const.");
+    Offset = CE->getValue();
+  }
+  else if (!(SRE = dyn_cast<MCSymbolRefExpr>(Expr)))
+    assert(false && "Unexpected MCExpr type.");
+
+  OS << SRE->getSymbol();
+  
+  if (Offset) {
+    if (Offset > 0)
+      OS << '+';
+    OS << Offset;
+  }
+}
+
 void M68kInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
                                    raw_ostream &O) {
   const MCOperand &Op = MI->getOperand(OpNo);
@@ -48,8 +73,11 @@ void M68kInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
     return;
   }
 
-  llvm_unreachable("Unknown operand type.");
+  assert(Op.isExpr() && "unknown operand kind in printOperand");
+  printExpr(Op.getExpr(), O);
 }
+
+
 
 void M68kInstPrinter::printMemOperand(const MCInst *MI, unsigned OpNo,
                                       raw_ostream &O) {

@@ -24,7 +24,9 @@ namespace llvm {
 
       // Return with a flag operand.
       // TODO what is this flag operand for?
-      RET_FLAG
+      RET_FLAG,
+
+      JSR
     };
   }
 
@@ -47,6 +49,21 @@ namespace llvm {
                   const SmallVectorImpl<ISD::OutputArg> &Outs,
                   const SmallVectorImpl<SDValue> &OutVals,
                   DebugLoc dl, SelectionDAG &DAG) const;
+
+    
+    virtual SDValue
+      LowerCall(TargetLowering::CallLoweringInfo &CLI,
+                SmallVectorImpl<SDValue> &InVals) const;
+
+    
+    SDValue
+      LowerCallResult(SDValue Chain, SDValue InFlag,
+                                        CallingConv::ID CallConv, bool isVarArg,
+                                        const SmallVectorImpl<ISD::InputArg> &Ins,
+                                        DebugLoc dl, SelectionDAG &DAG,
+                                        SmallVectorImpl<SDValue> &InVals) const;
+    
+    virtual const char *getTargetNodeName(unsigned Opcode) const;
   };
 } // end namespace llvm
 
